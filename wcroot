@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# wcroot - Determine if the current directory or $1 is a inside a
+#          working copy of a version controlled repository.  If it
+#          is, print the root directory of the working copy.
+
+if [ $# -eq 1 ]; then
+    cd "$1"
+elif [ $# -gt 0 ]; then
+    printf "Usage: %s [path]\n" $0
+    exit 1
+fi
+
+git=$(which git 2>/dev/null)
+hg=$(which hg 2>/dev/null)
+svn=$(which svn 2>/dev/null)
+
+unset root
+
+[ -z "$root" ] && [ -n "$hg" ]  && root=$(hg root 2>/dev/null)
+
+# FIXME: Figure out what release introduced --show-toplevel as it may
+#        be too new to rely on.
+[ -z "$root" ] && [ -n "$git" ] && root=$(git rev-parse --show-toplevel 2>/dev/null)
+
+# svn < 1.7 doesn't expose the working copy's root and even 1.7+
+# forces you to extract it from `svn info`.
+if [ -z "$root" ] && [ -n "$svn" ]; then
+    minor_version=$(svn --version | grep "^svn, version" | cut -d. -f2)
+    if [ "$minor_version" -ge 7 ]; then
+        root=$(svn info | grep "^Working Copy Root Path: " | cut -b25-)
+    else
+        # Walk the parent directories until a directory is found that
+        # doesn't contain a ".svn" folder.  This is mostly taken from
+        # the svnbase script at http://stackoverflow.com/q/1242364/155299.
+        #
+        # NOTE: This isn't 100% accurate because a repository can be
+        #       checked out inside of another working copy.
+        #       Unfortunately this is as close as we can get.
+        parent=""
+        grandparent="."
+
+        while [ -d "$grandparent/.svn" ]; do
+            parent=$grandparent
+            grandparent="$parent/.."
+        done
+
+        [ -n "$parent" ] && root=$(readlink -f "$parent")
+    fi
+fi
+
+if [ -n "$root" ]; then
+    printf "%s\n" $root
+fi
