@@ -28,7 +28,7 @@ unset root
 if [ -z "$root" ] && [ -n "$svn" ]; then
     minor_version=$(svn --version | grep "^svn, version" | cut -d. -f2)
     if [ "$minor_version" -ge 7 ]; then
-        root=$(svn info | grep "^Working Copy Root Path: " | cut -b25-)
+        root=$(svn info 2>/dev/null | grep "^Working Copy Root Path: " | cut -b25-)
     else
         # Walk the parent directories until a directory is found that
         # doesn't contain a ".svn" folder.  This is mostly taken from
