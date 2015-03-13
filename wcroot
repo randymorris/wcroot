@@ -4,9 +4,7 @@
 #          working copy of a version controlled repository.  If it
 #          is, print the root directory of the working copy.
 
-if [ $# -eq 1 ]; then
-    cd "$1"
-elif [ $# -gt 0 ]; then
+if [ $# -gt 0 ]; then
     printf "Usage: %s [path]\n" $0
     exit 1
 fi
